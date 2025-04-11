@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js" defer></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    
+    #settingsPanel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(40, 40, 40, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      width: 250px;
+      z-index: 1000;
+      font-family: Arial, sans-serif;
+    }
+    
+    #settingsPanel h3 {
+      margin: 0 0 10px 0;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #555;
+    }
+    
+    .setting-group {
+      margin-bottom: 15px;
+    }
+    
+    .setting-label {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 12px;
+    }
+    
+    .setting-control {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+    
+    .slider-value {
+      display: inline-block;
+      width: 40px;
+      text-align: right;
+      font-size: 12px;
+    }
+    
+    input[type="color"] {
+      width: 50px;
+    }
+    
+    select {
+      width: 100%;
+      padding: 3px;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+    
+    button {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-top: 5px;
+      font-size: 12px;
+    }
+    
+    button:hover {
+      background: #3b78e7;
+    }
+    
+    .toggle-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(40, 40, 40, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 1001;
+      cursor: pointer;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  
+  <!-- Панель настроек -->
+  <div id="settingsPanel">
+    <h3>Настройки сцены</h3>
+    
+    <div class="setting-group">
+      <label class="setting-label">Пресет освещения</label>
+      <select id="lightingPreset" class="setting-control">
+        <option value="footprintCourt">Footprint Court (HDR Labs)</option>
+        <option value="studio">Studio</option>
+        <option value="outdoor">Outdoor Daylight</option>
+        <option value="nighttime">Nighttime</option>
+      </select>
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Тип тонирования</label>
+      <select id="toneMapping" class="setting-control">
+        <option value="linear">Linear</option>
+        <option value="reinhard">Reinhard</option>
+        <option value="filmic">Filmic</option>
+        <option value="aces">ACES Filmic</option>
+      </select>
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Экспозиция <span id="exposureValue">-2.05</span></label>
+      <input type="range" id="exposure" min="-4" max="4" step="0.05" value="-2.05" class="setting-control">
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Интенсивность окружающего света <span id="ambientIntensityValue">1.27</span></label>
+      <input type="range" id="ambientIntensity" min="0" max="3" step="0.01" value="1.27" class="setting-control">
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Цвет окружающего света</label>
+      <input type="color" id="ambientColor" value="#ffffff" class="setting-control">
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Интенсивность прямого света <span id="directIntensityValue">3.9</span></label>
+      <input type="range" id="directIntensity" min="0" max="10" step="0.1" value="3.9" class="setting-control">
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Цвет прямого света</label>
+      <input type="color" id="directColor" value="#ffffff" class="setting-control">
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Модель</label>
+      <select id="modelSelect" class="setting-control">
+        <option value="./sample_buildings_2.glb">Sample Buildings 2</option>
+        <option value="./sample_buildings.glb">Sample Buildings</option>
+      </select>
+    </div>
+    
+    <div class="setting-group">
+      <label class="setting-label">Настройки против мерцания</label>
+      <div>
+        <label>
+          <input type="checkbox" id="enableFxaa" checked> FXAA антиалиасинг
+        </label>
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" id="logarithmicDepthBuffer" checked> Логарифмический буфер глубины
+        </label>
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" id="depthTestAgainstTerrain" checked> Глубинный тест
+        </label>
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" id="disableRequestRenderMode" checked> Постоянный рендеринг
+        </label>
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" id="softShadows" checked> Мягкие тени
+        </label>
+      </div>
+      <div>
+        <label class="setting-label">Детализация terrain <span id="detailedTerrainValue">1.0</span></label>
+        <input type="range" id="detailedTerrain" min="0.5" max="5.0" step="0.5" value="1.0" class="setting-control">
+      </div>
+      <div>
+        <label class="setting-label">Инерция камеры <span id="cameraInertiaValue">0.7</span></label>
+        <input type="range" id="cameraInertia" min="0.1" max="1.0" step="0.1" value="0.7" class="setting-control">
+      </div>
+    </div>
+    
+    <button id="applySettings">Применить настройки</button>
+    <button id="hidePanel">Скрыть панель</button>
+  </div>
+  
+  <div id="showPanel" class="toggle-panel">Показать настройки</div>
+  
+  <script>
+    // Check if Cesium is loaded and retry if not
+    function initCesium() {
+      if (typeof Cesium === 'undefined') {
+        // If Cesium is not yet defined, wait and try again
+        setTimeout(initCesium, 100);
+        return;
+      }
+      
+      // Cesium is loaded, now we can use it
+      Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzNjYxMTIwYS03YTdiLTQzY2MtYTU4My03ZDcxMWQ5NGU1OTciLCJpZCI6MTQ4NTM4LCJpYXQiOjE2ODc0NDY4OTF9.FcxwaPOxnu1bOjdgn566NDjJxj391dUfiDTf2GJpCpw';
+
+      const viewer = new Cesium.Viewer("cesiumContainer", {
+        infoBox: false,
+        selectionIndicator: false,
+        shadows: true,
+        shouldAnimate: true
+      });
+      
+      // Настройки по умолчанию
+      let settings = {
+        preset: 'footprintCourt',
+        toneMapping: 'linear',
+        exposure: -2.05,
+        ambientIntensity: 1.27,
+        ambientColor: '#ffffff',
+        directIntensity: 3.9,
+        directColor: '#ffffff',
+        modelUrl: './sample_buildings_2.glb',
+        // Настройки против мерцания
+        enableFxaa: true,
+        logarithmicDepthBuffer: true,
+        depthTestAgainstTerrain: true,
+        disableRequestRenderMode: true,
+        softShadows: true,
+        detailedTerrain: 1.0,
+        cameraInertia: 0.7
+      };
+      
+      // Получаем элементы управления
+      const exposureSlider = document.getElementById('exposure');
+      const exposureValue = document.getElementById('exposureValue');
+      const ambientIntensitySlider = document.getElementById('ambientIntensity');
+      const ambientIntensityValue = document.getElementById('ambientIntensityValue');
+      const ambientColorPicker = document.getElementById('ambientColor');
+      const directIntensitySlider = document.getElementById('directIntensity');
+      const directIntensityValue = document.getElementById('directIntensityValue');
+      const directColorPicker = document.getElementById('directColor');
+      const toneMappingSelect = document.getElementById('toneMapping');
+      const presetSelect = document.getElementById('lightingPreset');
+      const modelSelect = document.getElementById('modelSelect');
+      const applyButton = document.getElementById('applySettings');
+      const hideButton = document.getElementById('hidePanel');
+      const showButton = document.getElementById('showPanel');
+      const settingsPanel = document.getElementById('settingsPanel');
+      
+      // Обновление значений в реальном времени
+      exposureSlider.addEventListener('input', function() {
+        exposureValue.textContent = this.value;
+        settings.exposure = parseFloat(this.value);
+      });
+      
+      ambientIntensitySlider.addEventListener('input', function() {
+        ambientIntensityValue.textContent = this.value;
+        settings.ambientIntensity = parseFloat(this.value);
+      });
+      
+      directIntensitySlider.addEventListener('input', function() {
+        directIntensityValue.textContent = this.value;
+        settings.directIntensity = parseFloat(this.value);
+      });
+      
+      ambientColorPicker.addEventListener('input', function() {
+        settings.ambientColor = this.value;
+      });
+      
+      directColorPicker.addEventListener('input', function() {
+        settings.directColor = this.value;
+      });
+      
+      toneMappingSelect.addEventListener('change', function() {
+        settings.toneMapping = this.value;
+      });
+      
+      presetSelect.addEventListener('change', function() {
+        settings.preset = this.value;
+        // Обновляем все настройки в соответствии с пресетом
+        if (this.value === 'footprintCourt') {
+          settings.toneMapping = 'linear';
+          settings.exposure = -2.05;
+          settings.ambientIntensity = 1.27;
+          settings.ambientColor = '#ffffff';
+          settings.directIntensity = 3.9;
+          settings.directColor = '#ffffff';
+          
+          // Обновляем элементы управления
+          updateControlsFromSettings();
+        } else if (this.value === 'studio') {
+          settings.toneMapping = 'linear';
+          settings.exposure = -1.0;
+          settings.ambientIntensity = 0.8;
+          settings.ambientColor = '#f0f0f0';
+          settings.directIntensity = 2.5;
+          settings.directColor = '#ffffff';
+          
+          // Обновляем элементы управления
+          updateControlsFromSettings();
+        } else if (this.value === 'outdoor') {
+          settings.toneMapping = 'reinhard';
+          settings.exposure = 0;
+          settings.ambientIntensity = 0.5;
+          settings.ambientColor = '#b0d0ff';
+          settings.directIntensity = 4.0;
+          settings.directColor = '#fffaed';
+          
+          // Обновляем элементы управления
+          updateControlsFromSettings();
+        } else if (this.value === 'nighttime') {
+          settings.toneMapping = 'filmic';
+          settings.exposure = -1.5;
+          settings.ambientIntensity = 0.2;
+          settings.ambientColor = '#101030';
+          settings.directIntensity = 1.0;
+          settings.directColor = '#8080ff';
+          
+          // Обновляем элементы управления
+          updateControlsFromSettings();
+        }
+      });
+      
+      modelSelect.addEventListener('change', function() {
+        settings.modelUrl = this.value;
+      });
+      
+      // Функция для обновления элементов управления из настроек
+      function updateControlsFromSettings() {
+        exposureSlider.value = settings.exposure;
+        exposureValue.textContent = settings.exposure;
+        
+        ambientIntensitySlider.value = settings.ambientIntensity;
+        ambientIntensityValue.textContent = settings.ambientIntensity;
+        
+        directIntensitySlider.value = settings.directIntensity;
+        directIntensityValue.textContent = settings.directIntensity;
+        
+        ambientColorPicker.value = settings.ambientColor;
+        directColorPicker.value = settings.directColor;
+        
+        toneMappingSelect.value = settings.toneMapping;
+      }
+      
+      // Кнопка скрытия панели настроек
+      hideButton.addEventListener('click', function() {
+        settingsPanel.style.display = 'none';
+        showButton.style.display = 'block';
+      });
+      
+      // Кнопка показа панели настроек
+      showButton.addEventListener('click', function() {
+        settingsPanel.style.display = 'block';
+        showButton.style.display = 'none';
+      });
+      
+      // Функция для применения настроек к сцене
+      function applySettingsToScene() {
+        // Применяем тип тонирования
+        if (viewer.scene.postProcessStages) {
+          viewer.scene.postProcessStages.fxaa.enabled = true;
+        }
+        
+        // Применяем экспозицию
+        viewer.scene.exposure = settings.exposure;
+        
+        // Отключаем глобальное освещение
+        viewer.scene.globe.enableLighting = false;
+        
+        // Преобразуем HEX в RGB для цветов
+        function hexToRgb(hex) {
+          const r = parseInt(hex.slice(1, 3), 16) / 255;
+          const g = parseInt(hex.slice(3, 5), 16) / 255;
+          const b = parseInt(hex.slice(5, 7), 16) / 255;
+          return { r, g, b };
+        }
+        
+        // Применяем настройки прямого света
+        const directColor = hexToRgb(settings.directColor);
+        viewer.scene.light = new Cesium.DirectionalLight({
+          direction: new Cesium.Cartesian3(-0.5, -0.5, -1.0),
+          color: new Cesium.Color(directColor.r, directColor.g, directColor.b, 1.0),
+          intensity: settings.directIntensity
+        });
+        
+        // Применяем настройки окружающего света
+        const ambientColor = hexToRgb(settings.ambientColor);
+        if (viewer.scene.sphericalHarmonicCoefficients) {
+          viewer.scene.sphericalHarmonicCoefficients = [
+            new Cesium.Cartesian3(
+              ambientColor.r * settings.ambientIntensity,
+              ambientColor.g * settings.ambientIntensity,
+              ambientColor.b * settings.ambientIntensity
+            ),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0),
+            new Cesium.Cartesian3(0, 0, 0)
+          ];
+        }
+        
+        // Применяем настройки освещения на основе изображения
+        if (viewer.scene.imageBasedLighting) {
+          viewer.scene.imageBasedLighting.intensity = settings.ambientIntensity;
+        }
+        
+        // Антиалиасинг
+        viewer.scene.postProcessStages.fxaa.enabled = true;
+        
+        // Логарифмический буфер глубины
+        viewer.scene.logarithmicDepthBuffer = true;
+        
+        // Настройки, снижающие мерцание
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+        viewer.scene.requestRenderMode = false; // Всегда рендерить
+        viewer.scene.maximumRenderTimeChange = Infinity;
+        viewer.scene.globe.maximumScreenSpaceError = 1.0; // Более детальные тайлы
+        
+        // Дополнительные настройки освещения
+        viewer.shadowMap.softShadows = true;
+        viewer.shadowMap.size = 2048;
+        
+        // Создаем модель с новыми настройками
+        createModel(settings.modelUrl, 0);
+      }
+      
+      // Обработчик кнопки применения настроек
+      applyButton.addEventListener('click', applySettingsToScene);
+      
+      function createModel(url, height) {
+        viewer.entities.removeAll();
+
+        // You can adjust these coordinates to place your buildings in a specific location
+        const position = Cesium.Cartesian3.fromDegrees(
+          37.97881463004466,  // longitude
+          55.83593475851157,  // latitude
+          height       // height
+        );
+        const heading = Cesium.Math.toRadians(135);
+        const pitch = 0;
+        const roll = 0;
+        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+
+        // Преобразуем HEX в RGB для цветов
+        function hexToRgb(hex) {
+          const r = parseInt(hex.slice(1, 3), 16) / 255;
+          const g = parseInt(hex.slice(3, 5), 16) / 255;
+          const b = parseInt(hex.slice(5, 7), 16) / 255;
+          return { r, g, b };
+        }
+        
+        // Получаем RGB из HEX
+        const ambientColor = hexToRgb(settings.ambientColor);
+
+        const entity = viewer.entities.add({
+          name: "Sample Buildings",
+          position: position,
+          orientation: orientation,
+          model: {
+            uri: url,
+            minimumPixelSize: 128,
+            maximumScale: 20000,
+            colorBlendMode: Cesium.ColorBlendMode ? Cesium.ColorBlendMode.HIGHLIGHT : 1,
+            // Apply lighting settings to model
+            imageBasedLightingFactor: new Cesium.Cartesian2(
+              settings.ambientIntensity, 
+              1.0
+            ),
+            luminanceAtZenith: 0.2,
+            // Применяем цвет модели, если он задан настройками
+            color: new Cesium.Color(1.0, 1.0, 1.0, 1.0),
+            silhouetteSize: 0, // Отключаем силуэт
+            distanceDisplayCondition: undefined, // Нет ограничений по дистанции
+          },
+        });
+        
+        viewer.trackedEntity = entity;
+        
+        // Setup optimal viewing position
+        setTimeout(function() {
+          viewer.zoomTo(entity, new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(45),
+            Cesium.Math.toRadians(-25),
+            500
+          ));
+        }, 1000);
+
+        // Добавьте плавное перемещение камеры
+        viewer.scene.screenSpaceCameraController.enableInputs = true;
+        viewer.scene.screenSpaceCameraController.inertiaZoom = settings.cameraInertia;
+        viewer.scene.screenSpaceCameraController.inertiaRotate = settings.cameraInertia;
+        viewer.scene.screenSpaceCameraController.inertiaSpin = settings.cameraInertia;
+        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 50;
+      }
+
+      // Применяем настройки по умолчанию при запуске
+      applySettingsToScene();
+    }
+
+    // Start the initialization process when page loads
+    window.onload = initCesium;
+  </script>
+</body>
+</html>
