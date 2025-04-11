@@ -35,22 +35,45 @@
         shouldAnimate: true
       });
       
-      // Настройка освещения сцены и окружения
-      viewer.scene.globe.enableLighting = false; // Отключаем глобальное освещение, которое может затемнять модель
+      // "Footprint Court (HDR Labs)" environment settings
+      
+      // Set tone mapping to Linear
+      if (viewer.scene.postProcessStages) {
+        viewer.scene.postProcessStages.fxaa.enabled = true;
+      }
+      
+      // Exposure setting -2.05
+      viewer.scene.exposure = -2.05;
+      
+      // Setup ambient and direct lighting
+      viewer.scene.globe.enableLighting = false;
+      
+      // Setup ambient light (ambient intensity: 1.27, ambient color: #ffffff)
       viewer.scene.light = new Cesium.DirectionalLight({
         direction: new Cesium.Cartesian3(-0.5, -0.5, -1.0),
-        color: new Cesium.Color(1.0, 1.0, 1.0, 1.0),
-        intensity: 2.0
+        color: new Cesium.Color(1.0, 1.0, 1.0, 1.0), // #ffffff white color
+        intensity: 3.9 // Direct intensity: 3.9
       });
-
-      // Настройка солнца
-      viewer.scene.sun = new Cesium.Sun();
-      viewer.scene.sun.glowFactor = 2.0;
       
-      // Настройка неба для лучшего освещения
-      viewer.scene.skyAtmosphere.hueShift = 0.0;
-      viewer.scene.skyAtmosphere.saturationShift = 0.1;
-      viewer.scene.skyAtmosphere.brightnessShift = 0.1;
+      // Set ambient light to simulate HDR environment
+      if (viewer.scene.sphericalHarmonicCoefficients) {
+        viewer.scene.sphericalHarmonicCoefficients = [
+          new Cesium.Cartesian3(1.27, 1.27, 1.27), // Ambient intensity coefficient
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0),
+          new Cesium.Cartesian3(0, 0, 0)
+        ];
+      }
+      
+      // Apply image-based lighting settings
+      if (viewer.scene.imageBasedLighting) {
+        viewer.scene.imageBasedLighting.intensity = 1.27; // Set ambient intensity
+      }
 
       function createModel(url, height) {
         viewer.entities.removeAll();
@@ -66,9 +89,6 @@
         const roll = 0;
         const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
         const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
-        
-        // Установим время на полдень, когда освещение наиболее яркое
-        viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date(2022, 6, 1, 12, 0, 0));
 
         const entity = viewer.entities.add({
           name: "Sample Buildings",
@@ -79,13 +99,27 @@
             minimumPixelSize: 128,
             maximumScale: 20000,
             colorBlendMode: Cesium.ColorBlendMode ? Cesium.ColorBlendMode.HIGHLIGHT : 1,
+            // Apply HDR Labs Footprint Court lighting to model
+            imageBasedLightingFactor: new Cesium.Cartesian2(1.27, 1.0), // Ambient intensity
+            luminanceAtZenith: 0.2,
+           // lightColor: new Cesium.Cartesian3(3.9, 3.9, 3.9), // Direct intensity
           },
         });
+        
         viewer.trackedEntity = entity;
+        
+        // Setup optimal viewing position
+        setTimeout(function() {
+          viewer.zoomTo(entity, new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(45),
+            Cesium.Math.toRadians(-25),
+            500
+          ));
+        }, 1000);
       }
 
       // Use local path for model
-      const modelUrl = "./sample_buildings.glb";
+      const modelUrl = "./sample_buildings_2.glb";
       
       // Create model with zero height
       createModel(modelUrl, 0);
