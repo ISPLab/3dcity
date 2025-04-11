@@ -148,10 +148,16 @@
     </div>
     
     <div class="setting-group">
+      <label class="setting-label">Яркость модели <span id="modelBrightnessValue">1.0</span></label>
+      <input type="range" id="modelBrightness" min="0.1" max="2.0" step="0.05" value="1.0" class="setting-control">
+    </div>
+    
+    <div class="setting-group">
       <label class="setting-label">Модель</label>
       <select id="modelSelect" class="setting-control">
-        <option value="./sample_buildings_2.glb">Sample Buildings 2</option>
-        <option value="./sample_buildings.glb">Sample Buildings</option>
+        <option value="./model.glb">model</option>   
+        <option value="./sample_buildings_ion.glb">Sample Buildings Ion</option>
+        <option value="./sample_buildings_2.glb">Sample Buildings 2</option>         
       </select>
     </div>
     
@@ -210,12 +216,13 @@
       // Cesium is loaded, now we can use it
       Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzNjYxMTIwYS03YTdiLTQzY2MtYTU4My03ZDcxMWQ5NGU1OTciLCJpZCI6MTQ4NTM4LCJpYXQiOjE2ODc0NDY4OTF9.FcxwaPOxnu1bOjdgn566NDjJxj391dUfiDTf2GJpCpw';
 
-      const viewer = new Cesium.Viewer("cesiumContainer", {
-        infoBox: false,
-        selectionIndicator: false,
-        shadows: true,
-        shouldAnimate: true
-      });
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+      infoBox: false,
+      selectionIndicator: false,
+      shadows: true,
+      shouldAnimate: true,
+      skyAtmosphere: new Cesium.SkyAtmosphere()
+    });
       
       // Настройки по умолчанию
       let settings = {
@@ -226,7 +233,8 @@
         ambientColor: '#ffffff',
         directIntensity: 3.9,
         directColor: '#ffffff',
-        modelUrl: './sample_buildings_2.glb',
+        modelBrightness: 1.0,
+        modelUrl: './model.glb',
         // Настройки против мерцания
         enableFxaa: true,
         logarithmicDepthBuffer: true,
@@ -249,10 +257,22 @@
       const toneMappingSelect = document.getElementById('toneMapping');
       const presetSelect = document.getElementById('lightingPreset');
       const modelSelect = document.getElementById('modelSelect');
+      const modelBrightnessSlider = document.getElementById('modelBrightness');
+      const modelBrightnessValue = document.getElementById('modelBrightnessValue');
       const applyButton = document.getElementById('applySettings');
       const hideButton = document.getElementById('hidePanel');
       const showButton = document.getElementById('showPanel');
       const settingsPanel = document.getElementById('settingsPanel');
+      
+      const enableFxaaCheckbox = document.getElementById('enableFxaa');
+      const logarithmicDepthBufferCheckbox = document.getElementById('logarithmicDepthBuffer');
+      const depthTestAgainstTerrainCheckbox = document.getElementById('depthTestAgainstTerrain');
+      const disableRequestRenderModeCheckbox = document.getElementById('disableRequestRenderMode');
+      const softShadowsCheckbox = document.getElementById('softShadows');
+      const detailedTerrainSlider = document.getElementById('detailedTerrain');
+      const detailedTerrainValue = document.getElementById('detailedTerrainValue');
+      const cameraInertiaSlider = document.getElementById('cameraInertia');
+      const cameraInertiaValue = document.getElementById('cameraInertiaValue');
       
       // Обновление значений в реальном времени
       exposureSlider.addEventListener('input', function() {
@@ -276,6 +296,11 @@
       
       directColorPicker.addEventListener('input', function() {
         settings.directColor = this.value;
+      });
+      
+      modelBrightnessSlider.addEventListener('input', function() {
+        modelBrightnessValue.textContent = this.value;
+        settings.modelBrightness = parseFloat(this.value);
       });
       
       toneMappingSelect.addEventListener('change', function() {
@@ -332,6 +357,37 @@
         settings.modelUrl = this.value;
       });
       
+      // Add event listeners for checkboxes
+      enableFxaaCheckbox.addEventListener('change', function() {
+        settings.enableFxaa = this.checked;
+      });
+      
+      logarithmicDepthBufferCheckbox.addEventListener('change', function() {
+        settings.logarithmicDepthBuffer = this.checked;
+      });
+      
+      depthTestAgainstTerrainCheckbox.addEventListener('change', function() {
+        settings.depthTestAgainstTerrain = this.checked;
+      });
+      
+      disableRequestRenderModeCheckbox.addEventListener('change', function() {
+        settings.disableRequestRenderMode = this.checked;
+      });
+      
+      softShadowsCheckbox.addEventListener('change', function() {
+        settings.softShadows = this.checked;
+      });
+      
+      detailedTerrainSlider.addEventListener('input', function() {
+        detailedTerrainValue.textContent = this.value;
+        settings.detailedTerrain = parseFloat(this.value);
+      });
+      
+      cameraInertiaSlider.addEventListener('input', function() {
+        cameraInertiaValue.textContent = this.value;
+        settings.cameraInertia = parseFloat(this.value);
+      });
+      
       // Функция для обновления элементов управления из настроек
       function updateControlsFromSettings() {
         exposureSlider.value = settings.exposure;
@@ -347,6 +403,20 @@
         directColorPicker.value = settings.directColor;
         
         toneMappingSelect.value = settings.toneMapping;
+        
+        modelBrightnessSlider.value = settings.modelBrightness;
+        modelBrightnessValue.textContent = settings.modelBrightness;
+        
+        // Update anti-flicker controls
+        enableFxaaCheckbox.checked = settings.enableFxaa;
+        logarithmicDepthBufferCheckbox.checked = settings.logarithmicDepthBuffer;
+        depthTestAgainstTerrainCheckbox.checked = settings.depthTestAgainstTerrain;
+        disableRequestRenderModeCheckbox.checked = settings.disableRequestRenderMode;
+        softShadowsCheckbox.checked = settings.softShadows;
+        detailedTerrainSlider.value = settings.detailedTerrain;
+        detailedTerrainValue.textContent = settings.detailedTerrain;
+        cameraInertiaSlider.value = settings.cameraInertia;
+        cameraInertiaValue.textContent = settings.cameraInertia;
       }
       
       // Кнопка скрытия панели настроек
@@ -419,16 +489,20 @@
         viewer.scene.postProcessStages.fxaa.enabled = true;
         
         // Логарифмический буфер глубины
-        viewer.scene.logarithmicDepthBuffer = true;
+        viewer.scene.logarithmicDepthBuffer = settings.logarithmicDepthBuffer;
         
         // Настройки, снижающие мерцание
-        viewer.scene.globe.depthTestAgainstTerrain = true;
-        viewer.scene.requestRenderMode = false; // Всегда рендерить
-        viewer.scene.maximumRenderTimeChange = Infinity;
-        viewer.scene.globe.maximumScreenSpaceError = 1.0; // Более детальные тайлы
+        viewer.scene.globe.depthTestAgainstTerrain = settings.depthTestAgainstTerrain;
+        
+        // Apply requestRenderMode based on the checkbox setting
+        viewer.scene.requestRenderMode = !settings.disableRequestRenderMode; 
+        // Only set maximumRenderTimeChange if requestRenderMode is false (constant rendering)
+        viewer.scene.maximumRenderTimeChange = settings.disableRequestRenderMode ? Infinity : 0; 
+        
+        viewer.scene.globe.maximumScreenSpaceError = settings.detailedTerrain;
         
         // Дополнительные настройки освещения
-        viewer.shadowMap.softShadows = true;
+        viewer.shadowMap.softShadows = settings.softShadows;
         viewer.shadowMap.size = 2048;
         
         // Создаем модель с новыми настройками
@@ -437,21 +511,21 @@
       
       // Обработчик кнопки применения настроек
       applyButton.addEventListener('click', applySettingsToScene);
-      
-      function createModel(url, height) {
-        viewer.entities.removeAll();
 
-        // You can adjust these coordinates to place your buildings in a specific location
-        const position = Cesium.Cartesian3.fromDegrees(
+    function createModel(url, height) {
+      viewer.entities.removeAll();
+
+      // You can adjust these coordinates to place your buildings in a specific location
+      const position = Cesium.Cartesian3.fromDegrees(
           37.97881463004466,  // longitude
           55.83593475851157,  // latitude
           height       // height
-        );
-        const heading = Cesium.Math.toRadians(135);
-        const pitch = 0;
-        const roll = 0;
-        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
-        const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+      );
+      const heading = Cesium.Math.toRadians(135);
+      const pitch = 0;
+      const roll = 0;
+      const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+      const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
 
         // Преобразуем HEX в RGB для цветов
         function hexToRgb(hex) {
@@ -464,14 +538,15 @@
         // Получаем RGB из HEX
         const ambientColor = hexToRgb(settings.ambientColor);
 
-        const entity = viewer.entities.add({
-          name: "Sample Buildings",
-          position: position,
-          orientation: orientation,
-          model: {
-            uri: url,
-            minimumPixelSize: 128,
-            maximumScale: 20000,
+      const entity =  viewer.entities.add({
+        name: "Sample Buildings",
+        position: position,
+        orientation: orientation,
+        model: {
+          uri: url,
+          minimumPixelSize: 128,
+          scale: 10.0,
+          maximumScale: 20000,
             colorBlendMode: Cesium.ColorBlendMode ? Cesium.ColorBlendMode.HIGHLIGHT : 1,
             // Apply lighting settings to model
             imageBasedLightingFactor: new Cesium.Cartesian2(
@@ -479,14 +554,27 @@
               1.0
             ),
             luminanceAtZenith: 0.2,
-            // Применяем цвет модели, если он задан настройками
-            color: new Cesium.Color(1.0, 1.0, 1.0, 1.0),
+            // Применяем цвет и яркость модели
+            color: new Cesium.Color(
+              settings.modelBrightness, 
+              settings.modelBrightness, 
+              settings.modelBrightness, 
+              1.0
+            ),
             silhouetteSize: 0, // Отключаем силуэт
             distanceDisplayCondition: undefined, // Нет ограничений по дистанции
-          },
-        });
+        },
+      });
+      // let modelScale = 1.0;
+      // if (settings.modelUrl === './model.glb') {
+      //   // if "model" is selected, increase its size 3 times
+      //   modelScale = 3.0;
+      // }
+     // entity.model.scale = modelScale;
+
+    // viewer.entities.add(entity);
         
-        viewer.trackedEntity = entity;
+      viewer.trackedEntity = entity;
         
         // Setup optimal viewing position
         setTimeout(function() {
@@ -499,14 +587,37 @@
 
         // Добавьте плавное перемещение камеры
         viewer.scene.screenSpaceCameraController.enableInputs = true;
-        viewer.scene.screenSpaceCameraController.inertiaZoom = settings.cameraInertia;
-        viewer.scene.screenSpaceCameraController.inertiaRotate = settings.cameraInertia;
-        viewer.scene.screenSpaceCameraController.inertiaSpin = settings.cameraInertia;
+        // Inertia settings are now applied in applySettingsToScene
+        // viewer.scene.screenSpaceCameraController.inertiaZoom = settings.cameraInertia;
+        // viewer.scene.screenSpaceCameraController.inertiaRotate = settings.cameraInertia;
+        // viewer.scene.screenSpaceCameraController.inertiaSpin = settings.cameraInertia;
         viewer.scene.screenSpaceCameraController.minimumZoomDistance = 50;
       }
 
       // Применяем настройки по умолчанию при запуске
+      updateControlsFromSettings(); 
       applySettingsToScene();
+
+      // Inside initCesium function, after viewer creation
+      viewer.scene.postProcessStages.bloom.enabled = true;
+      // You can adjust bloom parameters:
+      viewer.scene.postProcessStages.bloom.uniforms.contrast = 128;
+      viewer.scene.postProcessStages.bloom.uniforms.brightness = -0.3;
+      viewer.scene.postProcessStages.bloom.uniforms.glowOnly = false;
+      viewer.scene.postProcessStages.bloom.uniforms.delta = 1.0;
+      viewer.scene.postProcessStages.bloom.uniforms.sigma = 3.78;
+      viewer.scene.postProcessStages.bloom.uniforms.stepSize = 5.0;
+
+      // Example using Cesium Ion assets (replace with actual asset IDs or URLs)
+      // This usually requires specific assets or custom setup.
+      // The current code already manipulates sphericalHarmonicCoefficients.
+      // For specular maps, you'd do something like:
+      // viewer.scene.specularEnvironmentMaps = '/path/to/your/specular/cubemap.ktx2';
+      // viewer.scene.imageBasedLighting.specularEnvironmentMaps = 'URL_TO_SPECULAR_MAP';
+
+      // Note: The current implementation modifies spherical harmonics directly.
+      // Using a dedicated environment map often provides better results but requires
+      // sourcing or generating the map files.
     }
 
     // Start the initialization process when page loads
