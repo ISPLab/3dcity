@@ -32,25 +32,9 @@
         infoBox: false,
         selectionIndicator: false,
         shadows: true,
-        shouldAnimate: true
+        shouldAnimate: true,
+  
       });
-      
-      // Настройка освещения сцены и окружения
-      viewer.scene.globe.enableLighting = false; // Отключаем глобальное освещение, которое может затемнять модель
-      viewer.scene.light = new Cesium.DirectionalLight({
-        direction: new Cesium.Cartesian3(-0.5, -0.5, -1.0),
-        color: new Cesium.Color(1.0, 1.0, 1.0, 1.0),
-        intensity: 2.0
-      });
-
-      // Настройка солнца
-      viewer.scene.sun = new Cesium.Sun();
-      viewer.scene.sun.glowFactor = 2.0;
-      
-      // Настройка неба для лучшего освещения
-      viewer.scene.skyAtmosphere.hueShift = 0.0;
-      viewer.scene.skyAtmosphere.saturationShift = 0.1;
-      viewer.scene.skyAtmosphere.brightnessShift = 0.1;
 
       function createModel(url, height) {
         viewer.entities.removeAll();
@@ -66,9 +50,7 @@
         const roll = 0;
         const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
         const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
-        
-        // Установим время на полдень, когда освещение наиболее яркое
-        viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date(2022, 6, 1, 12, 0, 0));
+        viewer.scene.globe.enableLighting = true;
 
         const entity = viewer.entities.add({
           name: "Sample Buildings",
@@ -78,16 +60,26 @@
             uri: url,
             minimumPixelSize: 128,
             maximumScale: 20000,
+            shadows: Cesium.ShadowMode ? Cesium.ShadowMode.ENABLED : true,
+            silhouetteSize: 0,
+            color: Cesium.Color.WHITE,
             colorBlendMode: Cesium.ColorBlendMode ? Cesium.ColorBlendMode.HIGHLIGHT : 1,
-          },
+            lightColor: Cesium.Cartesian3.fromElements(1.5, 1.5, 1.5),
+            runAnimations: true,
+            clampAnimations: true,
+            // Предотвращаем исчезновение модели
+            distanceDisplayCondition: undefined
+          }
         });
         viewer.trackedEntity = entity;
       }
 
-      // Use local path for model
+      // Use the GitHub download URL for your model (using /raw/ instead of /blob/)
+      // Or use the local path if testing locally
       const modelUrl = "./sample_buildings.glb";
+      // Alternatively, if using local server: "http://localhost:8000/samples/sample_buildings.glb"
       
-      // Create model with zero height
+      // Set the height value appropriate for your model
       createModel(modelUrl, 0);
     }
 
