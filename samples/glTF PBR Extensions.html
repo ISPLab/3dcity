@@ -89,6 +89,40 @@
         cursor: pointer;
         display: none;
       }
+      /* Style for the new model info panel */
+      #modelInfoPanel {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(40, 40, 40, 0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        width: 300px; /* Wider for more info */
+        max-height: 200px; /* Limit height and allow scroll */
+        overflow-y: auto;
+        z-index: 1000;
+        font-family: monospace; /* Good for structured text */
+        font-size: 11px;
+      }
+      #modelInfoPanel h4 {
+        margin: 0 0 5px 0;
+        padding-bottom: 3px;
+        border-bottom: 1px solid #555;
+        font-size: 13px;
+        font-family: Arial, sans-serif;
+      }
+      #modelInfoPanel div {
+        margin-bottom: 5px;
+      }
+      #modelInfoPanel ul {
+        margin: 0 0 5px 15px;
+        padding: 0;
+        list-style-type: disc; 
+      }
+      #modelInfoPanel li {
+        margin-bottom: 2px;
+      }
     </style>
   </head>
   <body>
@@ -143,12 +177,9 @@
       <!-- Model Brightness Slider Removed -->
       
       <div class="setting-group">
-        <label class="setting-label">Модель</label>
-        <select id="modelSelect" class="setting-control">
-          <option value="./sample_buildings.glb">Sample Buildings</option> 
-          <option value="./model.glb">model</option>           
-          <!-- Add other local model paths here if needed -->
-        </select>
+        <label class="setting-label">Загрузить модель (.glb/.gltf)</label>
+        <!-- Replace dropdown with file input -->
+        <input type="file" id="modelFileInput" accept=".glb,.gltf" class="setting-control">
       </div>
       
       <div class="setting-group">
@@ -168,11 +199,13 @@
         </div>
       </div>
       
-      <button id="applySettings">Применить настройки</button>
       <button id="hidePanel">Скрыть панель</button>
     </div>
     
     <div id="showPanel" class="toggle-panel">Показать настройки</div>
+
+    <!-- Panel to display model info -->
+    <div id="modelInfoPanel"><h4>Информация о модели</h4>(Загрузка...)</div>
 
     <script>
       // Global variable for viewer needed by helper functions
@@ -182,6 +215,7 @@
       let imageBasedLighting; // Store the IBL object globally
       let modelMatrix; // Store model matrix globally
       let currentModel; // Store current model primitive globally
+      let currentModelBlobUrl; // Store the URL for the current model blob
       let coefficients; // Store IBL coefficients globally
       let environmentMapURL; // Store IBL map URL globally
 
@@ -214,17 +248,16 @@
         }
 
         // Define model position and matrix (assign to global)
-        const height = 20.0;
+        const height = 0.0; // Use height 0 like sample_building
         const hpr = new Cesium.HeadingPitchRoll(0.0, 0.0, 0.0);
-        const origin = Cesium.Cartesian3.fromDegrees(-123.0744619, 44.0503706, height);
+        // Use coordinates from sample_building
+        const origin = Cesium.Cartesian3.fromDegrees(37.97881463004466, 55.83593475851157, height);
         modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(origin, hpr);
 
         // Define directional light (initially off)
         scene.light = new Cesium.DirectionalLight({
           direction: new Cesium.Cartesian3(
-            0.2454278300540191,
-            0.8842635425193919,
-            0.39729481195458805,
+            0, 1, 0
           ),
           intensity: 0.0, 
         });
@@ -277,7 +310,7 @@
             directIntensity: 0.0, // Matches initial light setting
             directColor: '#ffffff',
             // modelBrightness: 1.0, // Removed
-            modelUrl: './sample_buildings.glb', // Default model
+            // modelUrl: './sample_buildings.glb', // Removed - loaded via file input
             // Anti-flicker defaults
             enableFxaa: true,
             logarithmicDepthBuffer: true,
@@ -297,12 +330,11 @@
         const directIntensitySlider = document.getElementById('directIntensity');
         const directIntensityValue = document.getElementById('directIntensityValue');
         const directColorPicker = document.getElementById('directColor');
-        const toneMappingSelect = document.getElementById('toneMapping');
+        // const toneMappingSelect = document.getElementById('toneMapping'); // Tone mapping not implemented
         const presetSelect = document.getElementById('lightingPreset');
-        const modelSelect = document.getElementById('modelSelect');
+        const modelFileInput = document.getElementById('modelFileInput'); // Get file input
         // const modelBrightnessSlider = document.getElementById('modelBrightness'); // Removed
         // const modelBrightnessValue = document.getElementById('modelBrightnessValue'); // Removed
-        const applyButton = document.getElementById('applySettings');
         const hideButton = document.getElementById('hidePanel');
         const showButton = document.getElementById('showPanel');
         const settingsPanel = document.getElementById('settingsPanel');
@@ -321,25 +353,42 @@
         exposureSlider.addEventListener('input', function() {
             exposureValue.textContent = this.value;
             settings.exposure = parseFloat(this.value);
+            scene.exposure = settings.exposure; // Apply immediately
         });
         ambientIntensitySlider.addEventListener('input', function() {
             ambientIntensityValue.textContent = this.value;
             settings.ambientIntensity = parseFloat(this.value);
+            // Apply IBL intensity immediately
+            if (imageBasedLighting) {
+                imageBasedLighting.imageBasedLightingFactor = new Cesium.Cartesian2(settings.ambientIntensity, settings.ambientIntensity);
+            }
         });
         directIntensitySlider.addEventListener('input', function() {
             directIntensityValue.textContent = this.value;
             settings.directIntensity = parseFloat(this.value);
+            // Apply direct light intensity immediately
+            if (scene.light instanceof Cesium.DirectionalLight) {
+                scene.light.intensity = settings.directIntensity;
+            }
         });
         directColorPicker.addEventListener('input', function() {
             settings.directColor = this.value;
+            // Apply direct light color immediately
+            if (scene.light instanceof Cesium.DirectionalLight) {
+                function hexToRgb(hex) {
+                    const r = parseInt(hex.slice(1, 3), 16) / 255;
+                    const g = parseInt(hex.slice(3, 5), 16) / 255;
+                    const b = parseInt(hex.slice(5, 7), 16) / 255;
+                    return { r, g, b };
+                }
+                const directColorRgb = hexToRgb(settings.directColor);
+                scene.light.color = new Cesium.Color(directColorRgb.r, directColorRgb.g, directColorRgb.b, 1.0);
+            }
         });
-        toneMappingSelect.addEventListener('change', function() {
-            settings.toneMapping = this.value; // Add logic in applySettingsToScene if needed
-        });
+        // toneMappingSelect event listener removed - not implemented
         presetSelect.addEventListener('change', function() {
             settings.preset = this.value;
             // Add logic to update other settings based on preset if needed
-            // Example for outdoor preset (adjust values as needed):
             if (this.value === 'outdoor') {
               settings.toneMapping = 'reinhard';
               settings.exposure = 0;
@@ -347,6 +396,8 @@
               settings.directIntensity = 4.0;
               settings.directColor = '#fffaed';
               updateControlsFromSettings();
+              // Apply preset settings immediately
+              applySceneSettingsFromPreset(); 
             } else if (this.value === 'footprintCourt') {
               // Reset to some defaults (adjust as needed for PBR)
               settings.toneMapping = 'linear';
@@ -355,24 +406,56 @@
               settings.directIntensity = 0.0;
               settings.directColor = '#ffffff';
               updateControlsFromSettings();
+              // Apply preset settings immediately
+              applySceneSettingsFromPreset(); 
             }
             // Add other presets as needed
         });
-        modelSelect.addEventListener('change', function() {
-            settings.modelUrl = this.value;
+        // File input listener - Loads model on change
+        modelFileInput.addEventListener('change', function(event) {
+            const file = event.target.files ? event.target.files[0] : null;
+            if (file) {
+                console.log("File selected:", file.name);
+                // Revoke previous blob URL if it exists
+                if (currentModelBlobUrl) {
+                    URL.revokeObjectURL(currentModelBlobUrl);
+                    console.log("Revoked previous blob URL:", currentModelBlobUrl);
+                    currentModelBlobUrl = null;
+                }
+
+                // Create a new blob URL
+                currentModelBlobUrl = URL.createObjectURL(file);
+                console.log("Created new blob URL:", currentModelBlobUrl);
+
+                // Load the model using the blob URL
+                loadModel(currentModelBlobUrl);
+            } else {
+                console.log("No file selected or input cleared.");
+            }
         });
-        enableFxaaCheckbox.addEventListener('change', function() { settings.enableFxaa = this.checked; });
-        logarithmicDepthBufferCheckbox.addEventListener('change', function() { settings.logarithmicDepthBuffer = this.checked; });
-        depthTestAgainstTerrainCheckbox.addEventListener('change', function() { settings.depthTestAgainstTerrain = this.checked; });
-        disableRequestRenderModeCheckbox.addEventListener('change', function() { settings.disableRequestRenderMode = this.checked; });
-        softShadowsCheckbox.addEventListener('change', function() { settings.softShadows = this.checked; });
+        enableFxaaCheckbox.addEventListener('change', function() { settings.enableFxaa = this.checked; scene.postProcessStages.fxaa.enabled = settings.enableFxaa; });
+        logarithmicDepthBufferCheckbox.addEventListener('change', function() { settings.logarithmicDepthBuffer = this.checked; scene.logarithmicDepthBuffer = settings.logarithmicDepthBuffer; });
+        depthTestAgainstTerrainCheckbox.addEventListener('change', function() { settings.depthTestAgainstTerrain = this.checked; scene.globe.depthTestAgainstTerrain = settings.depthTestAgainstTerrain; });
+        disableRequestRenderModeCheckbox.addEventListener('change', function() { 
+            settings.disableRequestRenderMode = this.checked; 
+            scene.requestRenderMode = !settings.disableRequestRenderMode;
+            scene.maximumRenderTimeChange = settings.disableRequestRenderMode ? Infinity : 0; 
+        });
+        softShadowsCheckbox.addEventListener('change', function() { settings.softShadows = this.checked; viewer.shadowMap.softShadows = settings.softShadows; });
         detailedTerrainSlider.addEventListener('input', function() {
             detailedTerrainValue.textContent = this.value;
             settings.detailedTerrain = parseFloat(this.value);
+            scene.globe.maximumScreenSpaceError = settings.detailedTerrain; // Apply immediately
         });
         cameraInertiaSlider.addEventListener('input', function() {
             cameraInertiaValue.textContent = this.value;
             settings.cameraInertia = parseFloat(this.value);
+            // Apply camera inertia immediately
+            if (scene.screenSpaceCameraController) {
+               scene.screenSpaceCameraController.inertiaSpin = settings.cameraInertia;
+               scene.screenSpaceCameraController.inertiaTranslate = settings.cameraInertia;
+               scene.screenSpaceCameraController.inertiaZoom = settings.cameraInertia;
+            }
         });
 
         // Update controls from settings function
@@ -384,9 +467,9 @@
             directIntensitySlider.value = settings.directIntensity;
             directIntensityValue.textContent = settings.directIntensity;
             directColorPicker.value = settings.directColor;
-            toneMappingSelect.value = settings.toneMapping;
+            // toneMappingSelect.value = settings.toneMapping; // Removed
             presetSelect.value = settings.preset; 
-            modelSelect.value = settings.modelUrl;
+            // modelSelect.value = settings.modelUrl; // Removed
             enableFxaaCheckbox.checked = settings.enableFxaa;
             logarithmicDepthBufferCheckbox.checked = settings.logarithmicDepthBuffer;
             depthTestAgainstTerrainCheckbox.checked = settings.depthTestAgainstTerrain;
@@ -408,8 +491,8 @@
             showButton.style.display = 'none';
         });
 
-        // Apply settings function
-        function applySettingsToScene() {
+        // Helper function to apply scene settings (called by presets or potentially other actions)
+        function applySceneSettingsFromPreset() {
             console.log("Applying settings:", settings);
 
             // Apply simple scene settings
@@ -447,23 +530,8 @@
                 scene.light.color = new Cesium.Color(directColorRgb.r, directColorRgb.g, directColorRgb.b, 1.0);
             }
             
-            // Apply tone mapping (basic example, might need more complex stage management)
-            if (scene.postProcessStages.fxaa) { // Ensure fxaa stage exists
-                // Cesium doesn't have a direct scene.toneMapping property.
-                // Tone mapping is usually part of a post-process stage collection.
-                // This requires managing PostProcessStageCollection, which is more complex.
-                // Skipping direct tone mapping application for now.
-                console.warn("Tone mapping setting change detected, but direct application is complex and not implemented in this example.");
-            }
-
-            // Load the selected model
-            loadModel(settings.modelUrl);
+            // Tone mapping logic would go here if implemented
         }
-
-        // Add listener for the apply button
-        applyButton.addEventListener('click', applySettingsToScene);
-
-        // --- End Settings Panel Logic ---
 
         // Function to load a model (uses Primitives API)
         async function loadModel(modelUrl) {
@@ -487,6 +555,7 @@
             newModel.readyEvent.addEventListener(() => {
                console.log("Model ready, zooming...");
                zoomToModel(newModel);
+               displayModelInfo(newModel); // Call function to display info
             });
 
             // Add an error listener
@@ -525,9 +594,90 @@
           );
         }
 
+        // --- Function to display model info ---
+        function displayModelInfo(model) {
+            console.log("Displaying model info...", model);
+            const infoPanel = document.getElementById('modelInfoPanel');
+            if (!infoPanel) return;
+
+            let htmlContent = '<h4>Информация о модели</h4>';
+
+            if (!model) {
+                htmlContent += '(Модель не загружена или нет данных glTF)';
+                infoPanel.innerHTML = htmlContent;
+                return;
+            }
+
+            // Bounding Sphere Radius
+            if (model.boundingSphere) {
+                htmlContent += `<div><b>Радиус Bounding Sphere:</b> ${model.boundingSphere.radius.toFixed(3)}</div>`;
+            }
+
+            // Extensions Used
+            if (model.extensionsUsed && model.extensionsUsed.length > 0) {
+                htmlContent += `<div><b>Используемые расширения:</b><ul>`;
+                model.extensionsUsed.forEach(ext => { htmlContent += `<li>${ext}</li>`; });
+                htmlContent += `</ul></div>`;
+            } else {
+                htmlContent += `<div><b>Используемые расширения:</b> Нет</div>`;
+            }
+
+            const gltf = model.gltf;
+
+            // Materials
+            if (gltf.materials && gltf.materials.length > 0) {
+                htmlContent += `<div><b>Материалы (${gltf.materials.length}):</b><ul>`;
+                gltf.materials.forEach((mat, index) => {
+                    let matInfo = `<li>[${index}] ${mat.name || '(без имени)'}`;
+                    if (mat.pbrMetallicRoughness) {
+                        const pbr = mat.pbrMetallicRoughness;
+                        let textures = [];
+                        if (pbr.baseColorTexture) textures.push(`BaseColor: ${pbr.baseColorTexture.index}`);
+                        if (pbr.metallicRoughnessTexture) textures.push(`MetalRough: ${pbr.metallicRoughnessTexture.index}`);
+                        if (mat.normalTexture) textures.push(`Normal: ${mat.normalTexture.index}`);
+                        if (mat.occlusionTexture) textures.push(`Occlusion: ${mat.occlusionTexture.index}`);
+                        if (mat.emissiveTexture) textures.push(`Emissive: ${mat.emissiveTexture.index}`);
+                        if (textures.length > 0) {
+                            matInfo += ` (Текстуры: ${textures.join(', ')})`;
+                        }
+                    }
+                    matInfo += `</li>`;
+                    htmlContent += matInfo;
+                });
+                htmlContent += `</ul></div>`;
+            } else {
+                htmlContent += `<div><b>Материалы:</b> Нет</div>`;
+            }
+
+            // Textures
+            if (gltf.textures && gltf.textures.length > 0) {
+                htmlContent += `<div><b>Текстуры (${gltf.textures.length}):</b><ul>`;
+                gltf.textures.forEach((tex, index) => {
+                    htmlContent += `<li>[${index}] Источник изображения: ${tex.source !== undefined ? tex.source : '?'}${tex.sampler !== undefined ? ', Семплер: ' + tex.sampler : ''}</li>`;
+                });
+                htmlContent += `</ul></div>`;
+            } else {
+                htmlContent += `<div><b>Текстуры:</b> Нет</div>`;
+            }
+
+             // Images
+             if (gltf.images && gltf.images.length > 0) {
+                htmlContent += `<div><b>Изображения (${gltf.images.length}):</b><ul>`;
+                gltf.images.forEach((img, index) => {
+                    htmlContent += `<li>[${index}] ${img.name || '(без имени)'} ${img.uri ? '(URI: ' + img.uri.substring(0, 30) + (img.uri.length > 30 ? '...' : '') + ')' : ''}</li>`;
+                });
+                htmlContent += `</ul></div>`;
+            } else {
+                htmlContent += `<div><b>Изображения:</b> Нет</div>`;
+            }
+
+            infoPanel.innerHTML = htmlContent;
+        }
+
         // --- Initial Setup ---
         updateControlsFromSettings(); // Set initial panel values from settings object
-        applySettingsToScene(); // Apply initial settings (loads default model)
+        // Apply initial scene settings from defaults (doesn't load model)
+        applySceneSettingsFromPreset(); 
 
       }
 
