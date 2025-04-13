@@ -72,7 +72,9 @@
         try {
           const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(3297311);
           viewer.scene.primitives.add(tileset);
+          tileset.maximumScreenSpaceError = 8;
           await viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(0, -0.5, 150));
+          console.log("Default 3D Tileset loaded and zoomed.");
 
           // Apply the default style if it exists
           const extras = tileset.asset.extras;
