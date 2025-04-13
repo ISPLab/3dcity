@@ -46,9 +46,15 @@
           terrainProvider: await Cesium.CesiumTerrainProvider.fromIonAssetId(1),
           shadows: true, // Включить тени
           shouldAnimate: true, // Для анимации солнца и т.п.
-          timeline: false,
+          timeline: true,
           animation: false,
+         // useBrowserRecommendedResolution: false, // Use native resolution
         });
+
+        // Quality Settings
+        viewer.scene.globe.maximumScreenSpaceError = 1; // Increase terrain detail
+        viewer.scene.postProcessStages.fxaa.enabled = true; // Ensure FXAA is on
+        viewer.shadowMap.size = 4096; // Increase shadow map resolution
 
         viewer.scene.globe.depthTestAgainstTerrain = true;
         viewer.scene.skyAtmosphere.show = true;
@@ -70,9 +76,9 @@
         });
 
         try {
-          const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(3297311);
+          const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(3297316);
           viewer.scene.primitives.add(tileset);
-          tileset.maximumScreenSpaceError = 8;
+          tileset.maximumScreenSpaceError = 2; // Lower for higher detail tiles
           await viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(0, -0.5, 150));
           console.log("Default 3D Tileset loaded and zoomed.");
 
