@@ -75,26 +75,61 @@
           },
         });
 
-        try {
-          const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(3297316);
-          viewer.scene.primitives.add(tileset);
-          tileset.maximumScreenSpaceError = 2; // Lower for higher detail tiles
-          await viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(0, -0.5, 150));
-          console.log("Default 3D Tileset loaded and zoomed.");
+        // Add Clouds
+        const clouds = new Cesium.CloudCollection();
+        const cloudHeight = 3000.0; // Adjusted to a more typical cloud height (meters)
+        clouds.add({
+          position: Cesium.Cartesian3.fromDegrees(55.1192632704, 25.0803878204, cloudHeight), // User's coordinates
+          scale: new Cesium.Cartesian2(7000, 3500),
+          maximumSize: new Cesium.Cartesian3(150, 75, 40),
+          slice: 0.35,
+        });
+         clouds.add({
+          position: Cesium.Cartesian3.fromDegrees(55.1192632704, 25.0803878204, cloudHeight + 500), // Slightly higher cloud
+          scale: new Cesium.Cartesian2(6000, 3000),
+          maximumSize: new Cesium.Cartesian3(120, 60, 35),
+          slice: 0.4,
+        });
+        viewer.scene.cloudCollection = clouds;
 
-          // Apply the default style if it exists
-          const extras = tileset.asset.extras;
+        try {
+          // Load the first tileset
+          const tileset1 = await Cesium.Cesium3DTileset.fromIonAssetId(3297311);
+          viewer.scene.primitives.add(tileset1);
+          tileset1.maximumScreenSpaceError = 2; // Lower for higher detail tiles
+
+          // Load the second tileset
+          // const tileset2 = await Cesium.Cesium3DTileset.fromIonAssetId(3297334);
+          // viewer.scene.primitives.add(tileset2);
+          // tileset2.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          // Load the third tileset
+          const tileset3 = await Cesium.Cesium3DTileset.fromIonAssetId(3297332);
+          viewer.scene.primitives.add(tileset3);
+          tileset3.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          // Zoom to the first tileset
+          await viewer.zoomTo(tileset1, new Cesium.HeadingPitchRange(0, -0.5, 150));
+          console.log("All 3D Tilesets loaded. Zoomed to the first one.");
+
+          // Apply the default style if it exists (Example for tileset1, repeat if needed for others)
+          const extras1 = tileset1.asset.extras;
           if (
-            Cesium.defined(extras) &&
-            Cesium.defined(extras.ion) &&
-            Cesium.defined(extras.ion.defaultStyle)
+            Cesium.defined(extras1) &&
+            Cesium.defined(extras1.ion) &&
+            Cesium.defined(extras1.ion.defaultStyle)
           ) {
-            tileset.style = new Cesium.Cesium3DTileStyle(extras.ion.defaultStyle);
-             console.log("Applied default tileset style.");
+            tileset1.style = new Cesium.Cesium3DTileStyle(extras1.ion.defaultStyle);
+            console.log("Applied default style to tileset 1.");
           }
+          
+          // Optional: Apply styles for tileset2 and tileset3 if they exist
+          // const extras2 = tileset2.asset.extras; ... apply style ...
+          // const extras3 = tileset3.asset.extras; ... apply style ...
+
         } catch (error) {
-          console.error("Failed to load 3D Tiles:", error);
-           window.alert(`Error loading default 3D Tileset: ${error}`);
+          console.error("Failed to load one or more 3D Tilesets:", error);
+          window.alert(`Error loading one or more 3D Tilesets: ${error}`);
         }
       }
 
