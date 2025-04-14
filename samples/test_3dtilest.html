@@ -92,16 +92,23 @@
         });
         viewer.scene.cloudCollection = clouds;
 
-        try {
-          // Load the first tileset
-          const tileset1 = await Cesium.Cesium3DTileset.fromIonAssetId(3297311);
-          viewer.scene.primitives.add(tileset1);
-          tileset1.maximumScreenSpaceError = 2; // Lower for higher detail tiles
-
+        try {  
           // Load the second tileset
-          // const tileset2 = await Cesium.Cesium3DTileset.fromIonAssetId(3297334);
-          // viewer.scene.primitives.add(tileset2);
-          // tileset2.maximumScreenSpaceError = 2; // Apply same detail setting
+          const sample_buildings_2 = await Cesium.Cesium3DTileset.fromIonAssetId(3297378);
+          viewer.scene.primitives.add(sample_buildings_2);
+          sample_buildings_2.maximumScreenSpaceError = 2; // Apply same detail setting
+          
+          const transparence3298083 = await Cesium.Cesium3DTileset.fromIonAssetId(3298083);
+          viewer.scene.primitives.add(transparence3298083);
+          transparence3298083.maximumScreenSpaceError = 2; // Apply same detail setting
+
+
+          const tileset_helemt_blender = await Cesium.Cesium3DTileset.fromIonAssetId(3297376);
+          viewer.scene.primitives.add(tileset_helemt_blender);
+          tileset_helemt_blender.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          
+
 
           // Load the third tileset
           const tileset3 = await Cesium.Cesium3DTileset.fromIonAssetId(3297332);
@@ -109,17 +116,17 @@
           tileset3.maximumScreenSpaceError = 2; // Apply same detail setting
 
           // Zoom to the first tileset
-          await viewer.zoomTo(tileset1, new Cesium.HeadingPitchRange(0, -0.5, 150));
+          await viewer.zoomTo(transparence3298083, new Cesium.HeadingPitchRange(0, -0.5, 150));
           console.log("All 3D Tilesets loaded. Zoomed to the first one.");
 
           // Apply the default style if it exists (Example for tileset1, repeat if needed for others)
-          const extras1 = tileset1.asset.extras;
+          const extras1 = transparence3298083.asset.extras;
           if (
             Cesium.defined(extras1) &&
             Cesium.defined(extras1.ion) &&
             Cesium.defined(extras1.ion.defaultStyle)
           ) {
-            tileset1.style = new Cesium.Cesium3DTileStyle(extras1.ion.defaultStyle);
+            transparence3298083.style = new Cesium.Cesium3DTileStyle(extras1.ion.defaultStyle);
             console.log("Applied default style to tileset 1.");
           }
           
