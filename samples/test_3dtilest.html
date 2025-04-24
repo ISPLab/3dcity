@@ -48,7 +48,7 @@
           shouldAnimate: true, // Для анимации солнца и т.п.
           timeline: true,
           animation: false,
-         // useBrowserRecommendedResolution: false, // Use native resolution
+          useBrowserRecommendedResolution: true, // Use native resolution
         });
 
         // Quality Settings
@@ -94,7 +94,7 @@
 
         try {  
           // Load the second tileset
-          const sample_buildings_2 = await Cesium.Cesium3DTileset.fromIonAssetId(3297378);
+          const sample_buildings_2 = await Cesium.Cesium3DTileset.fromIonAssetId(3298603);
           viewer.scene.primitives.add(sample_buildings_2);
           sample_buildings_2.maximumScreenSpaceError = 2; // Apply same detail setting
           
@@ -107,7 +107,12 @@
           viewer.scene.primitives.add(tileset_helemt_blender);
           tileset_helemt_blender.maximumScreenSpaceError = 2; // Apply same detail setting
 
-          
+          const tileset_helemt_blender_2 = await Cesium.Cesium3DTileset.fromIonAssetId(3297398);
+          viewer.scene.primitives.add(tileset_helemt_blender_2);
+          tileset_helemt_blender_2.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          // 3298422
+
 
 
           // Load the third tileset
@@ -115,8 +120,13 @@
           viewer.scene.primitives.add(tileset3);
           tileset3.maximumScreenSpaceError = 2; // Apply same detail setting
 
+
+          const tileset_all_houses = await Cesium.Cesium3DTileset.fromIonAssetId(3312247);
+          viewer.scene.primitives.add(tileset_all_houses);
+          tileset_all_houses.maximumScreenSpaceError = 2; // Apply same detail setting
+
           // Zoom to the first tileset
-          await viewer.zoomTo(transparence3298083, new Cesium.HeadingPitchRange(0, -0.5, 150));
+          await viewer.zoomTo(sample_buildings_2, new Cesium.HeadingPitchRange(0, -0.5, 150));
           console.log("All 3D Tilesets loaded. Zoomed to the first one.");
 
           // Apply the default style if it exists (Example for tileset1, repeat if needed for others)

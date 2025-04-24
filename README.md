@@ -1,3 +1,7 @@
+добавь еше 3д тайл сет на сцену  3312248
+
+
+
 # 3DCityDB Deployment Scripts
 
 This repository contains scripts to easily deploy the complete 3DCityDB ecosystem on your local machine.
