@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="Use image-based lighting to light a model.">
+    <title>Cesium Demo - Image-Based Lighting</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js" defer></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+      html, body, #cesiumContainer {
+        width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+    <script>
+      function initCesium() {
+        if (typeof Cesium === 'undefined') {
+          setTimeout(initCesium, 100);
+          return;
+        }
+
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzNjYxMTIwYS03YTdiLTQzY2MtYTU4My03ZDcxMWQ5NGU1OTciLCJpZCI6MTQ4NTM4LCJpYXQiOjE2ODc0NDY4OTF9.FcxwaPOxnu1bOjdgn566NDjJxj391dUfiDTf2GJpCpw'; // Add your token if needed
+
+        const viewer = new Cesium.Viewer("cesiumContainer", {
+           // Match PBR example viewer settings
+           animation: false,
+           timeline: false,
+           useBrowserRecommendedResolution: false,
+           // Keep other useful settings
+           shadows: true,
+           shouldAnimate: true,
+           skyAtmosphere: new Cesium.SkyAtmosphere(),
+           infoBox: false,
+           selectionIndicator: false,
+        });
+        viewer.scene.highDynamicRange = true; // Enable HDR
+
+        // Check for IBL support
+        if (!viewer.scene.specularEnvironmentMapsSupported) {
+          window.alert("This browser does not support specular environment maps.");
+        }
+
+        // Use the updated model URL
+        const modelURL = "./sample_building.glb";
+
+        // Environment map URL (using the one from the original example)
+        const environmentMapURL =
+          "https://cesium.com/public/SandcastleSampleData/kiara_6_afternoon_2k_ibl.ktx2";
+
+        // Spherical harmonic coefficients (from the original example)
+        const L00 = new Cesium.Cartesian3(
+          1.234897375106812, 1.221635103225708, 1.273374080657959
+        );
+        const L1_1 = new Cesium.Cartesian3(
+          1.136140108108521, 1.171419978141785, 1.287894368171692
+        );
+        const L10 = new Cesium.Cartesian3(
+          1.245410919189453, 1.245791077613831, 1.283067107200623
+        );
+        const L11 = new Cesium.Cartesian3(
+          1.107124328613281, 1.112697005271912, 1.153419137001038
+        );
+        const L2_2 = new Cesium.Cartesian3(
+          1.08641505241394, 1.079904079437256, 1.10212504863739
+        );
+        const L2_1 = new Cesium.Cartesian3(
+          1.190043210983276, 1.186099290847778, 1.214627981185913
+        );
+        const L20 = new Cesium.Cartesian3(
+          0.017783647403121, 0.020140396431088, 0.025317270308733
+        );
+        const L21 = new Cesium.Cartesian3(
+          1.087014317512512, 1.084779262542725, 1.111417651176453
+        );
+        const L22 = new Cesium.Cartesian3(
+          -0.052426788955927, -0.048315055668354, -0.041973855346441
+        );
+        const coefficients = [L00, L1_1, L10, L11, L2_2, L2_1, L20, L21, L22];
+
+        // Apply IBL to the scene
+        if (viewer.scene.imageBasedLighting) {
+            viewer.scene.imageBasedLighting.sphericalHarmonicCoefficients = coefficients;
+            viewer.scene.imageBasedLighting.specularEnvironmentMaps = environmentMapURL;
+            // viewer.scene.imageBasedLighting.intensity can be controlled if needed, defaults to 1.0
+        }
+
+        // Disable default sunlight and set specific direction like PBR example
+        viewer.scene.light = new Cesium.DirectionalLight({
+          direction: new Cesium.Cartesian3(
+            0.2454278300540191,
+            0.8842635425193919,
+            0.39729481195458805,
+          ),
+          intensity: 0.0, // Keep intensity 0 to rely on IBL initially
+        });
+
+        // Add custom direct light if needed (optional, can be adjusted/removed)
+        // viewer.scene.light = new Cesium.DirectionalLight({
+        //    direction: new Cesium.Cartesian3(-0.5, -0.5, -1.0),
+        //    color: Cesium.Color.WHITE,
+        //    intensity: 1.0
+        // });
+
+
+        // Model position and orientation from PBR example
+        const height = 20.0; // Use PBR example height
+        const longitude = -123.0744619; // Use PBR example coords
+        const latitude = 44.0503706;
+        const position = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+        const heading = Cesium.Math.toRadians(0.0); // PBR example HPR
+        const pitch = 0.0;
+        const roll = 0.0;
+        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+
+        // Load the model using Entities API (like sample_building.html)
+        try {
+           const entity = viewer.entities.add({
+             name: "IBL Buildings",
+             position: position,
+             orientation: orientation,
+             model: {
+               uri: modelURL,
+               minimumPixelSize: 128, // Adjust as needed
+               maximumScale: 20000, // Adjust as needed
+               // Scale can be set here if needed, e.g., scale: 1.0
+               colorBlendMode: Cesium.ColorBlendMode.HIGHLIGHT
+               // No need to set IBL properties here, they are on the scene
+             },
+           });
+
+           // Zoom to the entity after a delay, using PBR camera angle
+           setTimeout(() => {
+             viewer.zoomTo(entity, new Cesium.HeadingPitchRange(
+                 Cesium.Math.toRadians(270.0), // heading from PBR lookAt
+                 Cesium.Math.toRadians(0.0), // pitch from PBR lookAt (adjusted from -20 as model height differs)
+                 100.0 // range (distance) - adjusted, PBR example range depends on model size
+             ));
+           }, 1500); // Delay to allow model loading
+
+        } catch (error) {
+           console.error(`Error loading model: ${error}`);
+           window.alert(`Error loading model: ${error}`);
+        }
+      }
+
+      // Start the initialization process when page loads
+      window.onload = initCesium;
+    </script>
+  </body>
+</html>

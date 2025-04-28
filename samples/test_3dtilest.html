@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"
+    />
+    <meta
+      name="description"
+      content="Use glTF extensions for physically-based rendering with settings panel."
+    />
+    <title>Cesium Demo - glTF PBR Extensions</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js" defer></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+      html, body, #cesiumContainer {
+        width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+      }
+      /* Remove styles for settingsPanel and modelInfoPanel as they are no longer used */
+      /* Styles copied from sample_building.html */
+      /* #settingsPanel { ... } */
+      /* #modelInfoPanel { ... } */
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <!-- Remove Settings Panel and Model Info Panel HTML -->
+    <!-- <div id="settingsPanel"> ... </div> -->
+    <!-- <div id="showPanel" class="toggle-panel">Показать настройки</div> -->
+    <!-- <div id="modelInfoPanel"><h4>Информация о модели</h4>(Загрузка...)</div> -->
+
+    <script>
+      async function initCesium() {
+        if (typeof Cesium === 'undefined') {
+          setTimeout(initCesium, 100);
+          return;
+        }
+
+        // Grant CesiumJS access to your ion assets
+        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzNjYxMTIwYS03YTdiLTQzY2MtYTU4My03ZDcxMWQ5NGU1OTciLCJpZCI6MTQ4NTM4LCJpYXQiOjE2ODc0NDY4OTF9.FcxwaPOxnu1bOjdgn566NDjJxj391dUfiDTf2GJpCpw";
+
+        const viewer = new Cesium.Viewer("cesiumContainer", {
+          terrainProvider: await Cesium.CesiumTerrainProvider.fromIonAssetId(1),
+          shadows: true, // Включить тени
+          shouldAnimate: true, // Для анимации солнца и т.п.
+          timeline: true,
+          animation: false,
+          useBrowserRecommendedResolution: true, // Use native resolution
+        });
+
+        // Quality Settings
+        viewer.scene.globe.maximumScreenSpaceError = 1; // Increase terrain detail
+        viewer.scene.postProcessStages.fxaa.enabled = true; // Ensure FXAA is on
+        viewer.shadowMap.size = 4096; // Increase shadow map resolution
+
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+        viewer.scene.skyAtmosphere.show = true;
+
+        // Настройка освещения
+        viewer.scene.light = new Cesium.SunLight();
+        viewer.scene.globe.enableLighting = true;
+
+        // Дополнительное: Skybox и High Dynamic Range (если HDRI нет — использовать дефолт)
+        viewer.scene.skyBox = new Cesium.SkyBox({
+          sources: {
+            positiveX: "https://cesium.com/downloads/cesiumjs/releases/1.108/Apps/Sandcastle/images/skybox/px.jpg",
+            negativeX: "https://cesium.com/downloads/cesiumjs/releases/1.108/Apps/Sandcastle/images/skybox/nx.jpg",
+            positiveY: "https://cesium.com/downloads/cesiumjs/releases/1.108/Apps/Sandcastle/images/skybox/py.jpg",
+            negativeY: "https://cesium.com/downloads/cesiumjs/releases/1.108/Apps/Sandcastle/images/skybox/ny.jpg",
+            positiveZ: "https://cesium.com/downloads/cesiumjs/releases/1.108/Apps/Sandcastle/images/skybox/pz.jpg",
+            negativeZ: "https://cesium.com/downloads/cesiumjs/releases/1.108/Apps/Sandcastle/images/skybox/nz.jpg",
+          },
+        });
+
+        // Add Clouds
+        const clouds = new Cesium.CloudCollection();
+        const cloudHeight = 3000.0; // Adjusted to a more typical cloud height (meters)
+        clouds.add({
+          position: Cesium.Cartesian3.fromDegrees(55.1192632704, 25.0803878204, cloudHeight), // User's coordinates
+          scale: new Cesium.Cartesian2(7000, 3500),
+          maximumSize: new Cesium.Cartesian3(150, 75, 40),
+          slice: 0.35,
+        });
+         clouds.add({
+          position: Cesium.Cartesian3.fromDegrees(55.1192632704, 25.0803878204, cloudHeight + 500), // Slightly higher cloud
+          scale: new Cesium.Cartesian2(6000, 3000),
+          maximumSize: new Cesium.Cartesian3(120, 60, 35),
+          slice: 0.4,
+        });
+        viewer.scene.cloudCollection = clouds;
+
+        try {  
+          // Load the second tileset
+          const sample_buildings_2 = await Cesium.Cesium3DTileset.fromIonAssetId(3298603);
+          viewer.scene.primitives.add(sample_buildings_2);
+          sample_buildings_2.maximumScreenSpaceError = 2; // Apply same detail setting
+          
+          const transparence3298083 = await Cesium.Cesium3DTileset.fromIonAssetId(3298083);
+          viewer.scene.primitives.add(transparence3298083);
+          transparence3298083.maximumScreenSpaceError = 2; // Apply same detail setting
+
+
+          const tileset_helemt_blender = await Cesium.Cesium3DTileset.fromIonAssetId(3297376);
+          viewer.scene.primitives.add(tileset_helemt_blender);
+          tileset_helemt_blender.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          const tileset_helemt_blender_2 = await Cesium.Cesium3DTileset.fromIonAssetId(3297398);
+          viewer.scene.primitives.add(tileset_helemt_blender_2);
+          tileset_helemt_blender_2.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          // 3298422
+
+
+
+          // Load the third tileset
+          const tileset3 = await Cesium.Cesium3DTileset.fromIonAssetId(3297332);
+          viewer.scene.primitives.add(tileset3);
+          tileset3.maximumScreenSpaceError = 2; // Apply same detail setting
+
+
+          const tileset_all_houses = await Cesium.Cesium3DTileset.fromIonAssetId(3312247);
+          viewer.scene.primitives.add(tileset_all_houses);
+          tileset_all_houses.maximumScreenSpaceError = 2; // Apply same detail setting
+
+          // Zoom to the first tileset
+          await viewer.zoomTo(sample_buildings_2, new Cesium.HeadingPitchRange(0, -0.5, 150));
+          console.log("All 3D Tilesets loaded. Zoomed to the first one.");
+
+          // Apply the default style if it exists (Example for tileset1, repeat if needed for others)
+          const extras1 = transparence3298083.asset.extras;
+          if (
+            Cesium.defined(extras1) &&
+            Cesium.defined(extras1.ion) &&
+            Cesium.defined(extras1.ion.defaultStyle)
+          ) {
+            transparence3298083.style = new Cesium.Cesium3DTileStyle(extras1.ion.defaultStyle);
+            console.log("Applied default style to tileset 1.");
+          }
+          
+          // Optional: Apply styles for tileset2 and tileset3 if they exist
+          // const extras2 = tileset2.asset.extras; ... apply style ...
+          // const extras3 = tileset3.asset.extras; ... apply style ...
+
+        } catch (error) {
+          console.error("Failed to load one or more 3D Tilesets:", error);
+          window.alert(`Error loading one or more 3D Tilesets: ${error}`);
+        }
+      }
+
+      // Start the initialization process when page loads
+      window.onload = initCesium;
+    </script>
+  </body>
+</html>
